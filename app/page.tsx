@@ -162,24 +162,22 @@ export default function LuxurySheetBuilder() {
       <div className="mx-auto grid min-h-screen max-w-[1700px] grid-cols-1 gap-6 p-5 xl:grid-cols-[360px_minmax(0,1fr)]">
         <aside className="overflow-hidden rounded-[32px] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-xl xl:sticky xl:top-5 xl:h-[calc(100vh-40px)]">
           <div className="border-b border-white/10 p-6 pb-5">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <span className="rounded-full border border-[#b49b5f]/30 bg-[#b49b5f]/10 px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-[#dcc58b]">
-                Luxury Builder
-              </span>
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-neutral-300">
-                {images.length} images
-              </span>
-            </div>
-            <h1 className="text-2xl font-semibold tracking-tight text-white">
-              Proof Sheet Studio
-            </h1>
-            <p className="mt-2 text-sm leading-6 text-neutral-400">
-              Clean, premium contact sheets with live preview, drag-to-reorder,
-              and export.
-            </p>
-          </div>
-
-          <div className="space-y-6 overflow-y-auto p-5">
+  <div className="mb-3 flex items-center justify-between gap-3">
+    <span className="rounded-full border border-[#b49b5f]/30 bg-[#b49b5f]/10 px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-[#dcc58b]">
+      Luxury Builder
+    </span>
+    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-neutral-300">
+      {images.length} images
+    </span>
+  </div>
+  <h1 className="text-2xl font-semibold tracking-tight text-white">
+    Proof Sheet Studio
+  </h1>
+  <p className="mt-2 text-sm leading-6 text-neutral-400">
+    Clean contact sheets with logo placement, drag-to-reorder, and export.
+  </p>
+</div>
+<div className="flex-1 min-h-0 space-y-6 overflow-y-auto p-5">
             <div className="space-y-3">
               <label className="text-xs uppercase tracking-[0.24em] text-neutral-400">
                 Upload images
