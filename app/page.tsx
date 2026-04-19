@@ -22,6 +22,7 @@ import {
   Type,
   Image as ImageIcon,
   SlidersHorizontal,
+  X,
 } from "lucide-react";
 
 type SheetImage = {
@@ -99,6 +100,7 @@ function SectionTitle({
 
 export default function LuxurySheetBuilder() {
   const [images, setImages] = useState<SheetImage[]>([]);
+  const [logoSrc, setLogoSrc] = useState<string | null>(null);
   const [columns, setColumns] = useState(4);
   const [gap, setGap] = useState(14);
   const [padding, setPadding] = useState(24);
@@ -106,6 +108,7 @@ export default function LuxurySheetBuilder() {
   const [title, setTitle] = useState("Nico Salgado — Proof Sheet");
   const [subtitle, setSubtitle] = useState("Curated image selection");
   const [aspect, setAspect] = useState("4:5");
+  const [exporting, setExporting] = useState(false);
   const previewRef = useRef<HTMLDivElement | null>(null);
 
   const sensors = useSensors(
@@ -129,6 +132,19 @@ export default function LuxurySheetBuilder() {
     setImages((prev) => [...prev, ...next]);
   };
 
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLogoSrc(URL.createObjectURL(file));
+  };
+
+  const handleLogoDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (!file || !file.type.startsWith("image/")) return;
+    setLogoSrc(URL.createObjectURL(file));
+  };
+
   const onDragEnd = (event: {
     active: { id: string | number };
     over: { id: string | number } | null;
@@ -142,54 +158,70 @@ export default function LuxurySheetBuilder() {
     setImages((items) => arrayMove(items, oldIndex, newIndex));
   };
 
+  const triggerDownload = (dataUrl: string, filename: string) => {
+    const link = document.createElement("a");
+    link.href = dataUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const captureCanvas = async () => {
     if (!previewRef.current) throw new Error("Preview not ready");
     return html2canvas(previewRef.current, {
-      backgroundColor: "#0a0a0a",
+      backgroundColor: "#0b0b0b",
       scale: 2,
       useCORS: true,
-      allowTaint: true,
+      logging: false,
     });
   };
 
   const exportPNG = async () => {
+    setExporting(true);
     try {
       const canvas = await captureCanvas();
-      const link = document.createElement("a");
-      link.href = canvas.toDataURL("image/png");
-      link.download = "proof-sheet.png";
-      link.click();
+      triggerDownload(canvas.toDataURL("image/png"), "proof-sheet.png");
     } catch (e) {
       console.error("Export PNG failed", e);
+      alert("Export failed — check console for details.");
+    } finally {
+      setExporting(false);
     }
   };
 
   const exportJPEG = async () => {
+    setExporting(true);
     try {
       const canvas = await captureCanvas();
-      const link = document.createElement("a");
-      link.href = canvas.toDataURL("image/jpeg", 0.92);
-      link.download = "proof-sheet.jpg";
-      link.click();
+      triggerDownload(canvas.toDataURL("image/jpeg", 0.92), "proof-sheet.jpg");
     } catch (e) {
       console.error("Export JPEG failed", e);
+      alert("Export failed — check console for details.");
+    } finally {
+      setExporting(false);
     }
   };
 
   const exportPDF = async () => {
+    setExporting(true);
     try {
       const canvas = await captureCanvas();
       const { jsPDF } = await import("jspdf");
-      const imgData = canvas.toDataURL("image/jpeg", 0.92);
+      const w = canvas.width / 2;
+      const h = canvas.height / 2;
       const pdf = new jsPDF({
-        orientation: canvas.width > canvas.height ? "landscape" : "portrait",
+        orientation: w > h ? "landscape" : "portrait",
         unit: "px",
-        format: [canvas.width / 2, canvas.height / 2],
+        format: [w, h],
       });
-      pdf.addImage(imgData, "JPEG", 0, 0, canvas.width / 2, canvas.height / 2);
+      pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, w, h);
       pdf.save("proof-sheet.pdf");
     } catch (e) {
       console.error("Export PDF failed", e);
+      alert("Export failed — check console for details.");
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -234,6 +266,36 @@ export default function LuxurySheetBuilder() {
                   onChange={handleUpload}
                 />
               </label>
+            </div>
+
+            <div className="h-px bg-white/10" />
+
+            <div className="space-y-3">
+              <label className="text-xs uppercase tracking-[0.24em] text-neutral-400">
+                Logo
+              </label>
+              {logoSrc ? (
+                <div className="relative flex items-center justify-center rounded-[20px] border border-white/10 bg-white/[0.03] p-4">
+                  <img src={logoSrc} alt="Logo" className="max-h-16 max-w-full object-contain" />
+                  <button
+                    onClick={() => setLogoSrc(null)}
+                    className="absolute right-2 top-2 rounded-full bg-white/10 p-1 text-neutral-400 hover:bg-white/20 hover:text-white"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <label
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={handleLogoDrop}
+                  className="flex cursor-pointer flex-col items-center justify-center rounded-[20px] border border-dashed border-white/15 bg-white/[0.03] px-4 py-6 text-center transition hover:border-[#b49b5f]/40 hover:bg-white/[0.05]"
+                >
+                  <ImageIcon className="mb-2 h-5 w-5 text-[#dcc58b]" />
+                  <span className="text-xs text-neutral-300">Drop logo or click</span>
+                  <span className="mt-0.5 text-[11px] text-neutral-500">PNG recommended</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                </label>
+              )}
             </div>
 
             <div className="h-px bg-white/10" />
@@ -371,24 +433,27 @@ export default function LuxurySheetBuilder() {
               <div className="grid grid-cols-3 gap-2">
                 <button
                   onClick={exportPNG}
-                  className="flex h-11 items-center justify-center gap-1.5 rounded-2xl bg-[#b49b5f] text-xs font-semibold text-black transition hover:bg-[#cdb06d]"
+                  disabled={exporting}
+                  className="flex h-11 items-center justify-center gap-1.5 rounded-2xl bg-[#b49b5f] text-xs font-semibold text-black transition hover:bg-[#cdb06d] disabled:opacity-50"
                 >
                   <Download className="h-3.5 w-3.5" />
-                  PNG
+                  {exporting ? "…" : "PNG"}
                 </button>
                 <button
                   onClick={exportJPEG}
-                  className="flex h-11 items-center justify-center gap-1.5 rounded-2xl border border-[#b49b5f]/40 bg-[#b49b5f]/10 text-xs font-semibold text-[#dcc58b] transition hover:bg-[#b49b5f]/20"
+                  disabled={exporting}
+                  className="flex h-11 items-center justify-center gap-1.5 rounded-2xl border border-[#b49b5f]/40 bg-[#b49b5f]/10 text-xs font-semibold text-[#dcc58b] transition hover:bg-[#b49b5f]/20 disabled:opacity-50"
                 >
                   <Download className="h-3.5 w-3.5" />
-                  JPEG
+                  {exporting ? "…" : "JPEG"}
                 </button>
                 <button
                   onClick={exportPDF}
-                  className="flex h-11 items-center justify-center gap-1.5 rounded-2xl border border-[#b49b5f]/40 bg-[#b49b5f]/10 text-xs font-semibold text-[#dcc58b] transition hover:bg-[#b49b5f]/20"
+                  disabled={exporting}
+                  className="flex h-11 items-center justify-center gap-1.5 rounded-2xl border border-[#b49b5f]/40 bg-[#b49b5f]/10 text-xs font-semibold text-[#dcc58b] transition hover:bg-[#b49b5f]/20 disabled:opacity-50"
                 >
                   <Download className="h-3.5 w-3.5" />
-                  PDF
+                  {exporting ? "…" : "PDF"}
                 </button>
               </div>
               <button
@@ -418,12 +483,17 @@ export default function LuxurySheetBuilder() {
                     </h2>
                     <p className="mt-2 text-sm text-neutral-300">{subtitle}</p>
                   </div>
-                  <div className="flex items-center gap-2 self-start md:self-auto">
-                    <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[10px] uppercase tracking-[0.25em] text-neutral-300">
-                      {images.length} frames
-                    </div>
-                    <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[10px] uppercase tracking-[0.25em] text-neutral-300">
-                      {aspect}
+                  <div className="flex flex-col items-start gap-3 self-start md:items-end md:self-auto">
+                    {logoSrc && (
+                      <img src={logoSrc} alt="Logo" className="max-h-12 max-w-[160px] object-contain" />
+                    )}
+                    <div className="flex items-center gap-2">
+                      <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[10px] uppercase tracking-[0.25em] text-neutral-300">
+                        {images.length} frames
+                      </div>
+                      <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[10px] uppercase tracking-[0.25em] text-neutral-300">
+                        {aspect}
+                      </div>
                     </div>
                   </div>
                 </div>
