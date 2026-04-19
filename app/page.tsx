@@ -593,6 +593,7 @@ export default function LuxurySheetBuilder() {
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(180,155,95,0.18),_transparent_28%),linear-gradient(180deg,_#090909_0%,_#111111_100%)] text-white">
       <div className="mx-auto grid min-h-screen max-w-[1700px] grid-cols-1 gap-6 p-5 xl:grid-cols-[360px_minmax(0,1fr)]">
         <aside className="flex min-h-0 flex-col overflow-hidden rounded-[32px] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-xl xl:sticky xl:top-5 xl:h-[calc(100vh-40px)]">
+          <div className="p-5">
             <div className="mb-3 flex items-center justify-between gap-3">
               <span className="rounded-full border border-[#b49b5f]/30 bg-[#b49b5f]/10 px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-[#dcc58b]">
                 Luxury Builder
