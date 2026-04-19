@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useRef, useState } from "react";
-import html2canvas from "html2canvas";
+import { toPng, toJpeg } from "html-to-image";
 import {
   DndContext,
   PointerSensor,
@@ -101,6 +101,8 @@ function SectionTitle({
 export default function LuxurySheetBuilder() {
   const [images, setImages] = useState<SheetImage[]>([]);
   const [logoSrc, setLogoSrc] = useState<string | null>(null);
+  const [logoPos, setLogoPos] = useState({ x: 24, y: 24 });
+  const [logoSize, setLogoSize] = useState(120);
   const [columns, setColumns] = useState(4);
   const [gap, setGap] = useState(14);
   const [padding, setPadding] = useState(24);
@@ -110,6 +112,8 @@ export default function LuxurySheetBuilder() {
   const [aspect, setAspect] = useState("4:5");
   const [exporting, setExporting] = useState(false);
   const previewRef = useRef<HTMLDivElement | null>(null);
+  const dragRef = useRef<{ sx: number; sy: number; px: number; py: number } | null>(null);
+  const resizeRef = useRef<{ sx: number; sw: number } | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -167,62 +171,83 @@ export default function LuxurySheetBuilder() {
     document.body.removeChild(link);
   };
 
-  const captureCanvas = async () => {
-    if (!previewRef.current) throw new Error("Preview not ready");
-    return html2canvas(previewRef.current, {
-      backgroundColor: "#0b0b0b",
-      scale: 2,
-      useCORS: true,
-      logging: false,
-    });
+  const captureOpts = {
+    pixelRatio: 2,
+    filter: (node: HTMLElement) => node.dataset?.exportIgnore !== "true",
   };
 
   const exportPNG = async () => {
+    if (!previewRef.current) return;
     setExporting(true);
     try {
-      const canvas = await captureCanvas();
-      triggerDownload(canvas.toDataURL("image/png"), "proof-sheet.png");
+      const dataUrl = await toPng(previewRef.current, captureOpts);
+      triggerDownload(dataUrl, "proof-sheet.png");
     } catch (e) {
       console.error("Export PNG failed", e);
-      alert("Export failed — check console for details.");
+      alert("Export failed — see console.");
     } finally {
       setExporting(false);
     }
   };
 
   const exportJPEG = async () => {
+    if (!previewRef.current) return;
     setExporting(true);
     try {
-      const canvas = await captureCanvas();
-      triggerDownload(canvas.toDataURL("image/jpeg", 0.92), "proof-sheet.jpg");
+      const dataUrl = await toJpeg(previewRef.current, { ...captureOpts, quality: 0.92 });
+      triggerDownload(dataUrl, "proof-sheet.jpg");
     } catch (e) {
       console.error("Export JPEG failed", e);
-      alert("Export failed — check console for details.");
+      alert("Export failed — see console.");
     } finally {
       setExporting(false);
     }
   };
 
   const exportPDF = async () => {
+    if (!previewRef.current) return;
     setExporting(true);
     try {
-      const canvas = await captureCanvas();
+      const dataUrl = await toJpeg(previewRef.current, { ...captureOpts, quality: 0.92 });
+      const el = previewRef.current;
+      const w = el.offsetWidth;
+      const h = el.offsetHeight;
       const { jsPDF } = await import("jspdf");
-      const w = canvas.width / 2;
-      const h = canvas.height / 2;
-      const pdf = new jsPDF({
-        orientation: w > h ? "landscape" : "portrait",
-        unit: "px",
-        format: [w, h],
-      });
-      pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, w, h);
+      const pdf = new jsPDF({ orientation: w > h ? "landscape" : "portrait", unit: "px", format: [w, h] });
+      pdf.addImage(dataUrl, "JPEG", 0, 0, w, h);
       pdf.save("proof-sheet.pdf");
     } catch (e) {
       console.error("Export PDF failed", e);
-      alert("Export failed — check console for details.");
+      alert("Export failed — see console.");
     } finally {
       setExporting(false);
     }
+  };
+
+  const startLogoDrag = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragRef.current = { sx: e.clientX, sy: e.clientY, px: logoPos.x, py: logoPos.y };
+    const onMove = (ev: MouseEvent) => {
+      if (!dragRef.current) return;
+      setLogoPos({ x: dragRef.current.px + ev.clientX - dragRef.current.sx, y: dragRef.current.py + ev.clientY - dragRef.current.sy });
+    };
+    const onUp = () => { dragRef.current = null; window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+
+  const startLogoResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    resizeRef.current = { sx: e.clientX, sw: logoSize };
+    const onMove = (ev: MouseEvent) => {
+      if (!resizeRef.current) return;
+      setLogoSize(Math.max(40, resizeRef.current.sw + ev.clientX - resizeRef.current.sx));
+    };
+    const onUp = () => { resizeRef.current = null; window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
   };
 
   return (
@@ -470,8 +495,26 @@ export default function LuxurySheetBuilder() {
           <div className="w-full overflow-auto rounded-[28px] p-4">
             <div
               ref={previewRef}
-              className="mx-auto w-full max-w-[1100px] rounded-[34px] border border-white/10 bg-[#0b0b0b] p-7 shadow-[0_30px_100px_rgba(0,0,0,0.5)]"
+              className="relative mx-auto w-full max-w-[1100px] rounded-[34px] border border-white/10 bg-[#0b0b0b] p-7 shadow-[0_30px_100px_rgba(0,0,0,0.5)]"
             >
+              {/* draggable logo overlay */}
+              {logoSrc && (
+                <div
+                  style={{ position: "absolute", left: logoPos.x, top: logoPos.y, width: logoSize, zIndex: 30 }}
+                  onMouseDown={startLogoDrag}
+                  className="group cursor-move select-none"
+                >
+                  <img src={logoSrc} alt="Logo" style={{ width: "100%", display: "block" }} draggable={false} />
+                  {/* resize handle — hidden from export */}
+                  <div
+                    data-export-ignore="true"
+                    onMouseDown={startLogoResize}
+                    className="absolute bottom-0 right-0 h-4 w-4 cursor-se-resize opacity-0 group-hover:opacity-100"
+                    style={{ background: "rgba(180,155,95,0.8)", borderRadius: 2 }}
+                  />
+                </div>
+              )}
+
               <div className="mb-7 rounded-[28px] border border-[#b49b5f]/20 bg-[linear-gradient(135deg,rgba(180,155,95,0.16),rgba(255,255,255,0.03))] p-6">
                 <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                   <div>
@@ -483,17 +526,12 @@ export default function LuxurySheetBuilder() {
                     </h2>
                     <p className="mt-2 text-sm text-neutral-300">{subtitle}</p>
                   </div>
-                  <div className="flex flex-col items-start gap-3 self-start md:items-end md:self-auto">
-                    {logoSrc && (
-                      <img src={logoSrc} alt="Logo" className="max-h-12 max-w-[160px] object-contain" />
-                    )}
-                    <div className="flex items-center gap-2">
-                      <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[10px] uppercase tracking-[0.25em] text-neutral-300">
-                        {images.length} frames
-                      </div>
-                      <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[10px] uppercase tracking-[0.25em] text-neutral-300">
-                        {aspect}
-                      </div>
+                  <div className="flex items-center gap-2">
+                    <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[10px] uppercase tracking-[0.25em] text-neutral-300">
+                      {images.length} frames
+                    </div>
+                    <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[10px] uppercase tracking-[0.25em] text-neutral-300">
+                      {aspect}
                     </div>
                   </div>
                 </div>
