@@ -142,19 +142,55 @@ export default function LuxurySheetBuilder() {
     setImages((items) => arrayMove(items, oldIndex, newIndex));
   };
 
-  const exportPNG = async () => {
-    if (!previewRef.current) return;
-
-    const canvas = await html2canvas(previewRef.current, {
+  const captureCanvas = async () => {
+    if (!previewRef.current) throw new Error("Preview not ready");
+    return html2canvas(previewRef.current, {
       backgroundColor: "#0a0a0a",
       scale: 2,
       useCORS: true,
+      allowTaint: true,
     });
+  };
 
-    const link = document.createElement("a");
-    link.href = canvas.toDataURL("image/png");
-    link.download = "luxury-proof-sheet.png";
-    link.click();
+  const exportPNG = async () => {
+    try {
+      const canvas = await captureCanvas();
+      const link = document.createElement("a");
+      link.href = canvas.toDataURL("image/png");
+      link.download = "proof-sheet.png";
+      link.click();
+    } catch (e) {
+      console.error("Export PNG failed", e);
+    }
+  };
+
+  const exportJPEG = async () => {
+    try {
+      const canvas = await captureCanvas();
+      const link = document.createElement("a");
+      link.href = canvas.toDataURL("image/jpeg", 0.92);
+      link.download = "proof-sheet.jpg";
+      link.click();
+    } catch (e) {
+      console.error("Export JPEG failed", e);
+    }
+  };
+
+  const exportPDF = async () => {
+    try {
+      const canvas = await captureCanvas();
+      const { jsPDF } = await import("jspdf");
+      const imgData = canvas.toDataURL("image/jpeg", 0.92);
+      const pdf = new jsPDF({
+        orientation: canvas.width > canvas.height ? "landscape" : "portrait",
+        unit: "px",
+        format: [canvas.width / 2, canvas.height / 2],
+      });
+      pdf.addImage(imgData, "JPEG", 0, 0, canvas.width / 2, canvas.height / 2);
+      pdf.save("proof-sheet.pdf");
+    } catch (e) {
+      console.error("Export PDF failed", e);
+    }
   };
 
   return (
@@ -330,17 +366,34 @@ export default function LuxurySheetBuilder() {
 
             <div className="h-px bg-white/10" />
 
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={exportPNG}
-                className="flex h-12 items-center justify-center rounded-2xl bg-[#b49b5f] px-4 text-sm font-medium text-black transition hover:bg-[#cdb06d]"
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Export PNG
-              </button>
+            <div className="space-y-3">
+              <p className="text-xs uppercase tracking-[0.24em] text-neutral-400">Export</p>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={exportPNG}
+                  className="flex h-11 items-center justify-center gap-1.5 rounded-2xl bg-[#b49b5f] text-xs font-semibold text-black transition hover:bg-[#cdb06d]"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  PNG
+                </button>
+                <button
+                  onClick={exportJPEG}
+                  className="flex h-11 items-center justify-center gap-1.5 rounded-2xl border border-[#b49b5f]/40 bg-[#b49b5f]/10 text-xs font-semibold text-[#dcc58b] transition hover:bg-[#b49b5f]/20"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  JPEG
+                </button>
+                <button
+                  onClick={exportPDF}
+                  className="flex h-11 items-center justify-center gap-1.5 rounded-2xl border border-[#b49b5f]/40 bg-[#b49b5f]/10 text-xs font-semibold text-[#dcc58b] transition hover:bg-[#b49b5f]/20"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  PDF
+                </button>
+              </div>
               <button
                 onClick={() => setImages([])}
-                className="h-12 rounded-2xl border border-white/10 bg-white/5 px-4 text-sm font-medium text-white transition hover:bg-white/10"
+                className="h-10 w-full rounded-2xl border border-white/10 bg-white/5 text-sm font-medium text-white transition hover:bg-white/10"
               >
                 Clear All
               </button>
