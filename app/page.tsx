@@ -31,6 +31,15 @@ type SheetImage = {
   src: string;
 };
 
+const CANVAS_SIZES = [
+  { label: "Letter (2550×3300)", w: 2550, h: 3300 },
+  { label: "A4 (2480×3508)", w: 2480, h: 3508 },
+  { label: "8×10 (2400×3000)", w: 2400, h: 3000 },
+  { label: "11×14 (3300×4200)", w: 3300, h: 4200 },
+  { label: "Instagram Square (1080×1080)", w: 1080, h: 1080 },
+  { label: "Custom", w: 0, h: 0 },
+] as const;
+
 function SortableThumb({
   image,
   showNames,
@@ -110,7 +119,15 @@ export default function LuxurySheetBuilder() {
   const [title, setTitle] = useState("Nico Salgado — Proof Sheet");
   const [subtitle, setSubtitle] = useState("Curated image selection");
   const [aspect, setAspect] = useState("4:5");
+  const [canvasSizeLabel, setCanvasSizeLabel] = useState("Letter (2550×3300)");
+  const [customW, setCustomW] = useState(1920);
+  const [customH, setCustomH] = useState(1080);
   const [exporting, setExporting] = useState(false);
+
+  const canvasSize = CANVAS_SIZES.find((s) => s.label === canvasSizeLabel) ?? CANVAS_SIZES[0];
+  const exportW = canvasSize.label === "Custom" ? customW : canvasSize.w;
+  const exportH = canvasSize.label === "Custom" ? customH : canvasSize.h;
+  const canvasAspect = exportH / exportW;
   const previewRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<{ sx: number; sy: number; px: number; py: number } | null>(null);
   const resizeRef = useRef<{ sx: number; sw: number } | null>(null);
@@ -171,16 +188,19 @@ export default function LuxurySheetBuilder() {
     document.body.removeChild(link);
   };
 
-  const captureOpts = {
-    pixelRatio: 2,
+  const getPixelRatio = () =>
+    previewRef.current ? exportW / previewRef.current.offsetWidth : 2;
+
+  const captureOpts = () => ({
+    pixelRatio: getPixelRatio(),
     filter: (node: HTMLElement) => node.dataset?.exportIgnore !== "true",
-  };
+  });
 
   const exportPNG = async () => {
     if (!previewRef.current) return;
     setExporting(true);
     try {
-      const dataUrl = await toPng(previewRef.current, captureOpts);
+      const dataUrl = await toPng(previewRef.current, captureOpts());
       triggerDownload(dataUrl, "proof-sheet.png");
     } catch (e) {
       console.error("Export PNG failed", e);
@@ -194,7 +214,7 @@ export default function LuxurySheetBuilder() {
     if (!previewRef.current) return;
     setExporting(true);
     try {
-      const dataUrl = await toJpeg(previewRef.current, { ...captureOpts, quality: 0.92 });
+      const dataUrl = await toJpeg(previewRef.current, { ...captureOpts(), quality: 0.92 });
       triggerDownload(dataUrl, "proof-sheet.jpg");
     } catch (e) {
       console.error("Export JPEG failed", e);
@@ -208,7 +228,7 @@ export default function LuxurySheetBuilder() {
     if (!previewRef.current) return;
     setExporting(true);
     try {
-      const dataUrl = await toJpeg(previewRef.current, { ...captureOpts, quality: 0.92 });
+      const dataUrl = await toJpeg(previewRef.current, { ...captureOpts(), quality: 0.92 });
       const el = previewRef.current;
       const w = el.offsetWidth;
       const h = el.offsetHeight;
@@ -454,6 +474,48 @@ export default function LuxurySheetBuilder() {
             <div className="h-px bg-white/10" />
 
             <div className="space-y-3">
+              <p className="text-xs uppercase tracking-[0.24em] text-neutral-400">Canvas Size</p>
+              <select
+                value={canvasSizeLabel}
+                onChange={(e) => setCanvasSizeLabel(e.target.value)}
+                className="h-11 w-full rounded-2xl border border-white/10 bg-white/5 px-4 text-sm text-white outline-none focus:border-[#b49b5f]/60"
+              >
+                {CANVAS_SIZES.map((s) => (
+                  <option key={s.label} value={s.label} className="bg-neutral-900">
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+              {canvasSize.label === "Custom" && (
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <label className="text-xs text-neutral-400">Width px</label>
+                    <input
+                      type="number"
+                      value={customW}
+                      onChange={(e) => setCustomW(Number(e.target.value))}
+                      className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-[#b49b5f]/60"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-neutral-400">Height px</label>
+                    <input
+                      type="number"
+                      value={customH}
+                      onChange={(e) => setCustomH(Number(e.target.value))}
+                      className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-[#b49b5f]/60"
+                    />
+                  </div>
+                </div>
+              )}
+              <p className="text-[11px] text-neutral-500">
+                Export target: {exportW} × {exportH}px
+              </p>
+            </div>
+
+            <div className="h-px bg-white/10" />
+
+            <div className="space-y-3">
               <p className="text-xs uppercase tracking-[0.24em] text-neutral-400">Export</p>
               <div className="grid grid-cols-3 gap-2">
                 <button
@@ -495,7 +557,8 @@ export default function LuxurySheetBuilder() {
           <div className="w-full overflow-auto rounded-[28px] p-4">
             <div
               ref={previewRef}
-              className="relative mx-auto w-full max-w-[1100px] rounded-[34px] border border-white/10 bg-[#0b0b0b] p-7 shadow-[0_30px_100px_rgba(0,0,0,0.5)]"
+              className="relative mx-auto w-full max-w-[1100px] overflow-hidden rounded-[34px] border border-white/10 bg-[#0b0b0b] p-7 shadow-[0_30px_100px_rgba(0,0,0,0.5)]"
+              style={{ aspectRatio: `${exportW} / ${exportH}` }}
             >
               {/* draggable logo overlay */}
               {logoSrc && (
