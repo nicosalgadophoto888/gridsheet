@@ -197,19 +197,22 @@ export default function LuxurySheetBuilder() {
     document.body.removeChild(link);
   };
 
-  const getPixelRatio = () =>
-    previewRef.current ? exportW / previewRef.current.scrollWidth : 2;
-
-  const captureOpts = () => ({
-    pixelRatio: getPixelRatio(),
-    filter: (node: HTMLElement) => node.dataset?.exportIgnore !== "true",
-  });
+  const buildCaptureOpts = (el: HTMLDivElement) => {
+    const ratio = exportW / el.scrollWidth;
+    return {
+      pixelRatio: ratio,
+      width: el.scrollWidth,
+      height: el.scrollHeight,
+      filter: (node: HTMLElement) => node.dataset?.exportIgnore !== "true",
+    };
+  };
 
   const exportPNG = async () => {
     if (!previewRef.current) return;
     setExporting(true);
     try {
-      const dataUrl = await toPng(previewRef.current, captureOpts());
+      const el = previewRef.current;
+      const dataUrl = await toPng(el, buildCaptureOpts(el));
       triggerDownload(dataUrl, "proof-sheet.png");
     } catch (e) {
       console.error("Export PNG failed", e);
@@ -223,7 +226,8 @@ export default function LuxurySheetBuilder() {
     if (!previewRef.current) return;
     setExporting(true);
     try {
-      const dataUrl = await toJpeg(previewRef.current, { ...captureOpts(), quality: 0.92 });
+      const el = previewRef.current;
+      const dataUrl = await toJpeg(el, { ...buildCaptureOpts(el), quality: 0.92 });
       triggerDownload(dataUrl, "proof-sheet.jpg");
     } catch (e) {
       console.error("Export JPEG failed", e);
@@ -237,13 +241,20 @@ export default function LuxurySheetBuilder() {
     if (!previewRef.current) return;
     setExporting(true);
     try {
-      const dataUrl = await toJpeg(previewRef.current, { ...captureOpts(), quality: 0.92 });
       const el = previewRef.current;
-      const w = el.offsetWidth;
-      const h = el.offsetHeight;
+      const opts = buildCaptureOpts(el);
+      const dataUrl = await toJpeg(el, { ...opts, quality: 0.92 });
+      // PDF page dimensions match the captured image exactly
+      const pxW = el.scrollWidth * opts.pixelRatio;
+      const pxH = el.scrollHeight * opts.pixelRatio;
       const { jsPDF } = await import("jspdf");
-      const pdf = new jsPDF({ orientation: w > h ? "landscape" : "portrait", unit: "px", format: [w, h] });
-      pdf.addImage(dataUrl, "JPEG", 0, 0, w, h);
+      const pdf = new jsPDF({
+        orientation: pxW > pxH ? "landscape" : "portrait",
+        unit: "px",
+        format: [pxW, pxH],
+        hotfixes: ["px_scaling"],
+      });
+      pdf.addImage(dataUrl, "JPEG", 0, 0, pxW, pxH);
       pdf.save("proof-sheet.pdf");
     } catch (e) {
       console.error("Export PDF failed", e);
