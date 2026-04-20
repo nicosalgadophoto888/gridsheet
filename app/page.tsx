@@ -553,101 +553,103 @@ export default function LuxurySheetBuilder() {
           </div>
         </aside>
 
-        <main className="flex min-w-0 items-center justify-center rounded-[32px] border border-white/10 bg-black/20 p-4 shadow-2xl backdrop-blur-sm">
-          <div className="w-full overflow-auto rounded-[28px] p-4">
+        <main className="flex min-w-0 items-center justify-center rounded-[32px] border border-white/10 bg-black/20 p-6 shadow-2xl backdrop-blur-sm">
+          <div className="w-full overflow-auto">
+            {/* Outer shell enforces the page aspect ratio */}
             <div
               ref={previewRef}
-              className="relative mx-auto w-full max-w-[1100px] overflow-hidden rounded-[34px] border border-white/10 bg-[#0b0b0b] p-7 shadow-[0_30px_100px_rgba(0,0,0,0.5)]"
+              className="relative mx-auto w-full max-w-[900px] rounded-[28px] border border-white/10 bg-[#0b0b0b] shadow-[0_30px_100px_rgba(0,0,0,0.6)]"
               style={{ aspectRatio: `${exportW} / ${exportH}` }}
             >
-              {/* draggable logo overlay */}
-              {logoSrc && (
-                <div
-                  style={{ position: "absolute", left: logoPos.x, top: logoPos.y, width: logoSize, zIndex: 30 }}
-                  onMouseDown={startLogoDrag}
-                  className="group cursor-move select-none"
-                >
-                  <img src={logoSrc} alt="Logo" style={{ width: "100%", display: "block" }} draggable={false} />
-                  {/* resize handle — hidden from export */}
+              {/* Inner scroll area fills the page */}
+              <div className="absolute inset-0 overflow-auto rounded-[28px] p-7">
+
+                {/* draggable logo overlay */}
+                {logoSrc && (
                   <div
-                    data-export-ignore="true"
-                    onMouseDown={startLogoResize}
-                    className="absolute -bottom-2 -right-2 h-5 w-5 cursor-se-resize rounded-full border-2 border-[#0b0b0b] shadow-md"
-                    style={{ background: "rgba(180,155,95,0.95)" }}
-                  />
-                </div>
-              )}
-
-              <div className="mb-7 rounded-[28px] border border-[#b49b5f]/20 bg-[linear-gradient(135deg,rgba(180,155,95,0.16),rgba(255,255,255,0.03))] p-6">
-                <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                  <div>
-                    <p className="mb-3 text-[10px] uppercase tracking-[0.35em] text-[#dcc58b]">
-                      Curated Selection
-                    </p>
-                    <h2 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">
-                      {title}
-                    </h2>
-                    <p className="mt-2 text-sm text-neutral-300">{subtitle}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[10px] uppercase tracking-[0.25em] text-neutral-300">
-                      {images.length} frames
-                    </div>
-                    <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[10px] uppercase tracking-[0.25em] text-neutral-300">
-                      {aspect}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {images.length === 0 ? (
-                <div className="flex min-h-[520px] flex-col items-center justify-center rounded-[28px] border border-dashed border-white/10 bg-white/[0.02] text-center">
-                  <div className="rounded-full border border-white/10 bg-white/[0.04] p-5">
-                    <ImageIcon className="h-8 w-8 text-[#dcc58b]" />
-                  </div>
-                  <h3 className="mt-5 text-xl font-medium text-white">
-                    Your proof sheet starts here
-                  </h3>
-                  <p className="mt-2 max-w-md text-sm leading-6 text-neutral-400">
-                    Upload images on the left, then drag to reorder. The layout
-                    is tuned for a clean luxury presentation instead of a generic
-                    utility interface.
-                  </p>
-                </div>
-              ) : (
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={onDragEnd}
-                >
-                  <SortableContext
-                    items={images.map((img) => img.id)}
-                    strategy={rectSortingStrategy}
+                    style={{ position: "absolute", left: logoPos.x, top: logoPos.y, width: logoSize, zIndex: 30 }}
+                    onMouseDown={startLogoDrag}
+                    className="group cursor-move select-none"
                   >
+                    <img src={logoSrc} alt="Logo" style={{ width: "100%", display: "block" }} draggable={false} />
                     <div
-                      className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.015))]"
-                      style={{ padding: `${padding}px` }}
-                    >
-                      <div
-                        className="grid"
-                        style={{
-                          gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-                          gap: `${gap}px`,
-                        }}
-                      >
-                        {images.map((image) => (
-                          <SortableThumb
-                            key={image.id}
-                            image={image}
-                            showNames={showNames}
-                            ratioClass={ratioClass}
-                          />
-                        ))}
+                      data-export-ignore="true"
+                      onMouseDown={startLogoResize}
+                      className="absolute -bottom-2 -right-2 h-5 w-5 cursor-se-resize rounded-full border-2 border-[#0b0b0b] shadow-md"
+                      style={{ background: "rgba(180,155,95,0.95)" }}
+                    />
+                  </div>
+                )}
+
+                <div className="mb-7 rounded-[28px] border border-[#b49b5f]/20 bg-[linear-gradient(135deg,rgba(180,155,95,0.16),rgba(255,255,255,0.03))] p-6">
+                  <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                    <div>
+                      <p className="mb-3 text-[10px] uppercase tracking-[0.35em] text-[#dcc58b]">
+                        Curated Selection
+                      </p>
+                      <h2 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">
+                        {title}
+                      </h2>
+                      <p className="mt-2 text-sm text-neutral-300">{subtitle}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[10px] uppercase tracking-[0.25em] text-neutral-300">
+                        {images.length} frames
+                      </div>
+                      <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[10px] uppercase tracking-[0.25em] text-neutral-300">
+                        {aspect}
                       </div>
                     </div>
-                  </SortableContext>
-                </DndContext>
-              )}
+                  </div>
+                </div>
+
+                {images.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center rounded-[28px] border border-dashed border-white/10 bg-white/[0.02] py-24 text-center">
+                    <div className="rounded-full border border-white/10 bg-white/[0.04] p-5">
+                      <ImageIcon className="h-8 w-8 text-[#dcc58b]" />
+                    </div>
+                    <h3 className="mt-5 text-xl font-medium text-white">
+                      Your proof sheet starts here
+                    </h3>
+                    <p className="mt-2 max-w-md text-sm leading-6 text-neutral-400">
+                      Upload images on the left, then drag to reorder.
+                    </p>
+                  </div>
+                ) : (
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={onDragEnd}
+                  >
+                    <SortableContext
+                      items={images.map((img) => img.id)}
+                      strategy={rectSortingStrategy}
+                    >
+                      <div
+                        className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.015))]"
+                        style={{ padding: `${padding}px` }}
+                      >
+                        <div
+                          className="grid"
+                          style={{
+                            gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+                            gap: `${gap}px`,
+                          }}
+                        >
+                          {images.map((image) => (
+                            <SortableThumb
+                              key={image.id}
+                              image={image}
+                              showNames={showNames}
+                              ratioClass={ratioClass}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                )}
+              </div>
             </div>
           </div>
         </main>
