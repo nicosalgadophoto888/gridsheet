@@ -189,7 +189,7 @@ export default function LuxurySheetBuilder() {
   };
 
   const getPixelRatio = () =>
-    previewRef.current ? exportW / previewRef.current.offsetWidth : 2;
+    previewRef.current ? exportW / previewRef.current.scrollWidth : 2;
 
   const captureOpts = () => ({
     pixelRatio: getPixelRatio(),
@@ -553,16 +553,17 @@ export default function LuxurySheetBuilder() {
           </div>
         </aside>
 
-        <main className="flex min-w-0 items-center justify-center rounded-[32px] border border-white/10 bg-black/20 p-6 shadow-2xl backdrop-blur-sm">
-          <div className="w-full overflow-auto">
-            {/* Outer shell enforces the page aspect ratio */}
+        <main className="flex min-w-0 items-start justify-center overflow-auto rounded-[32px] border border-white/10 bg-black/20 p-6 shadow-2xl backdrop-blur-sm">
+          <div className="w-full">
+            {/* Canvas size label */}
+            <p className="mb-3 text-center text-[11px] uppercase tracking-[0.2em] text-neutral-500">
+              {canvasSize.label} — export {exportW}×{exportH}px
+            </p>
             <div
               ref={previewRef}
-              className="relative mx-auto w-full max-w-[900px] rounded-[28px] border border-white/10 bg-[#0b0b0b] shadow-[0_30px_100px_rgba(0,0,0,0.6)]"
-              style={{ aspectRatio: `${exportW} / ${exportH}` }}
+              className="relative mx-auto w-full max-w-[900px] rounded-[28px] border border-white/10 bg-[#0b0b0b] p-7 shadow-[0_30px_100px_rgba(0,0,0,0.6)]"
             >
-              {/* Inner scroll area fills the page */}
-              <div className="absolute inset-0 overflow-auto rounded-[28px] p-7">
+              <div className="relative">
 
                 {/* draggable logo overlay */}
                 {logoSrc && (
@@ -653,6 +654,7 @@ export default function LuxurySheetBuilder() {
             </div>
           </div>
         </main>
+
       </div>
     </div>
   );
