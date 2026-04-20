@@ -509,8 +509,8 @@ export default function LuxurySheetBuilder() {
                   <div
                     data-export-ignore="true"
                     onMouseDown={startLogoResize}
-                    className="absolute bottom-0 right-0 h-4 w-4 cursor-se-resize opacity-0 group-hover:opacity-100"
-                    style={{ background: "rgba(180,155,95,0.8)", borderRadius: 2 }}
+                    className="absolute -bottom-2 -right-2 h-5 w-5 cursor-se-resize rounded-full border-2 border-[#0b0b0b] shadow-md"
+                    style={{ background: "rgba(180,155,95,0.95)" }}
                   />
                 </div>
               )}
