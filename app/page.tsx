@@ -143,27 +143,36 @@ export default function LuxurySheetBuilder() {
     return "aspect-[4/5]";
   }, [aspect]);
 
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const toDataURL = (file: File): Promise<string> =>
+    new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target!.result as string);
+      reader.readAsDataURL(file);
+    });
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    const next = files.map((file, index) => ({
-      id: `${file.name}-${file.lastModified}-${index}`,
-      name: file.name.replace(/\.[^/.]+$/, ""),
-      src: URL.createObjectURL(file),
-    }));
+    const next = await Promise.all(
+      files.map(async (file, index) => ({
+        id: `${file.name}-${file.lastModified}-${index}`,
+        name: file.name.replace(/\.[^/.]+$/, ""),
+        src: await toDataURL(file),
+      }))
+    );
     setImages((prev) => [...prev, ...next]);
   };
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setLogoSrc(URL.createObjectURL(file));
+    setLogoSrc(await toDataURL(file));
   };
 
-  const handleLogoDrop = (e: React.DragEvent) => {
+  const handleLogoDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     const file = e.dataTransfer.files?.[0];
     if (!file || !file.type.startsWith("image/")) return;
-    setLogoSrc(URL.createObjectURL(file));
+    setLogoSrc(await toDataURL(file));
   };
 
   const onDragEnd = (event: {
